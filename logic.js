@@ -11,11 +11,32 @@ function calcSpinCost(spinRate) {
 
 const P_HIT = 1 / 349.9;
 
-const NORMAL_HIT_TYPES = {
-  rushEntry: { weight: 0.55, nominal: 3000, actual: 2800, entersRush: true },
-  single:    { weight: 0.45, nominal: 1500, actual: 1400, entersRush: false },
-};
-const NORMAL_HIT_TYPE_ORDER = ['rushEntry', 'single'];
+const ENZOKU_CONFIDENCE_OPTIONS = [40, 90];
+const DEFAULT_ENZOKU_CONFIDENCE = 40;
+
+function falseEnzokuProbability(confidencePercent) {
+  return P_HIT * ((100 - confidencePercent) / confidencePercent);
+}
+
+// 先バレのみのシンプルな予告方式。本物の当たり(P_HIT)と、外れなのに先バレが
+// 出る偽陽性(falseEnzokuProbability)の合算が「先バレ発生率」となり、その中で
+// 本物が占める割合がプレイヤー選択の信頼度(40%/90%)と一致する。
+function spinNormal(confidencePercent) {
+  if (Math.random() < P_HIT) return 'hit';
+  if (Math.random() < falseEnzokuProbability(confidencePercent)) return 'false_enzoku';
+  return 'miss';
+}
+
+const NORMAL_HIT_NOMINAL = 1500;
+const NORMAL_HIT_ACTUAL = 1400;
+
+// 通常時の当たりは常に1500大当たり。RUSH突入するかどうかは、その1500ボーナス
+// 中に別途ジャッジ(55%)で決まる。
+const P_RUSH_ENTRY = 0.55;
+
+function rollRushEntry() {
+  return Math.random() < P_RUSH_ENTRY;
+}
 
 function rollWeighted(table, order) {
   const r = Math.random();
@@ -25,58 +46,6 @@ function rollWeighted(table, order) {
     if (r < cumulative) return key;
   }
   return order[order.length - 1];
-}
-
-function rollNormalHitType() {
-  return rollWeighted(NORMAL_HIT_TYPES, NORMAL_HIT_TYPE_ORDER);
-}
-
-// ---- 保留予告（色）----
-// 色ごとに occurrence(全回転中でその色が出る割合)と confidence(その色が出た
-// ときの当選率)を独立に持つ。まず occurrence の比率で色を確定し、その後
-// confidence を使って当落を引くことで、色ごとの信頼度を厳密に再現する。
-// white(予告なし)は残りの occurrence を占め、confidence は全体の当選率が
-// ちょうど P_HIT になるよう逆算する。
-const COLOR_PREVIEW_TIER_ORDER = ['purpleCrystal', 'purple', 'red', 'gold', 'rainbow'];
-const COLOR_PREVIEW_TIERS = {
-  purpleCrystal: { label: '紫結晶', occurrence: 0.003884,  confidence: 0.07 },
-  purple:        { label: '紫',     occurrence: 0.001333,  confidence: 0.204 },
-  red:           { label: '赤',     occurrence: 0.000541,  confidence: 0.503 },
-  gold:          { label: '金',     occurrence: 0.000346,  confidence: 0.786 },
-  rainbow:       { label: '鬼熱',   occurrence: 0.0002775, confidence: 0.98 },
-};
-
-const COLOR_OCCURRENCE_SUM = COLOR_PREVIEW_TIER_ORDER.reduce(
-  (sum, key) => sum + COLOR_PREVIEW_TIERS[key].occurrence, 0
-);
-const COLOR_CONTRIBUTION_SUM = COLOR_PREVIEW_TIER_ORDER.reduce(
-  (sum, key) => sum + COLOR_PREVIEW_TIERS[key].occurrence * COLOR_PREVIEW_TIERS[key].confidence, 0
-);
-
-const PREVIEW_TIER_ORDER = ['white', ...COLOR_PREVIEW_TIER_ORDER];
-const PREVIEW_TIERS = {
-  white: {
-    label: '通常',
-    occurrence: 1 - COLOR_OCCURRENCE_SUM,
-    confidence: (P_HIT - COLOR_CONTRIBUTION_SUM) / (1 - COLOR_OCCURRENCE_SUM),
-  },
-  ...COLOR_PREVIEW_TIERS,
-};
-
-function rollPreviewColor() {
-  const r = Math.random();
-  let cumulative = 0;
-  for (const key of PREVIEW_TIER_ORDER) {
-    cumulative += PREVIEW_TIERS[key].occurrence;
-    if (r < cumulative) return key;
-  }
-  return PREVIEW_TIER_ORDER[PREVIEW_TIER_ORDER.length - 1];
-}
-
-function spinNormal() {
-  const color = rollPreviewColor();
-  const isWin = Math.random() < PREVIEW_TIERS[color].confidence;
-  return { color, isWin };
 }
 
 // ---- RUSH(ST)中 ----
@@ -140,13 +109,14 @@ if (typeof module !== 'undefined' && module.exports) {
     DEFAULT_SPIN_RATE,
     calcSpinCost,
     P_HIT,
+    ENZOKU_CONFIDENCE_OPTIONS,
+    DEFAULT_ENZOKU_CONFIDENCE,
+    falseEnzokuProbability,
     spinNormal,
-    NORMAL_HIT_TYPES,
-    NORMAL_HIT_TYPE_ORDER,
-    rollNormalHitType,
-    PREVIEW_TIERS,
-    PREVIEW_TIER_ORDER,
-    rollPreviewColor,
+    NORMAL_HIT_NOMINAL,
+    NORMAL_HIT_ACTUAL,
+    P_RUSH_ENTRY,
+    rollRushEntry,
     P_RUSH,
     RUSH_ST_COUNT,
     spinRush,

@@ -4,6 +4,7 @@ const game = {
   state: 'normal_idle',
   mode: 'normal',
   spinRate: DEFAULT_SPIN_RATE,
+  enzokuConfidence: DEFAULT_ENZOKU_CONFIDENCE,
   mochiDama: 0,
   toushi: 0,
   totalSpins: 0,
@@ -50,6 +51,11 @@ function handleSpinRateChange(value) {
   render();
 }
 
+function handleEnzokuConfidenceChange(value) {
+  game.enzokuConfidence = Number(value);
+  render();
+}
+
 // ---- 通常時ハンドラ ----
 
 function checkEigyoAlert() {
@@ -66,32 +72,24 @@ function runNormalSpin() {
   game.totalSpins++;
   game.currentSpins++;
   consumeSpinCost();
-  const { color, isWin } = spinNormal();
+  const result = spinNormal(game.enzokuConfidence);
   const interval = game.totalSpins - game.lastHitSpins;
 
-  if (color !== 'white') {
-    game.pending = { color, isWin, interval };
-    addLog(`${interval}回転で${PREVIEW_TIERS[color].label}保留出現！`, 'preview');
-    setState('preview');
-    return true;
-  }
-
-  if (isWin) {
-    resolveNormalHit(interval);
+  if (result === 'hit' || result === 'false_enzoku') {
+    game.pending = { type: result, interval };
+    addLog(`${interval}回転で先バレ発生！`);
+    setState('enzoku');
     return true;
   }
   return false;
 }
 
 function resolveNormalHit(interval) {
-  const hitType = rollNormalHitType();
-  const info = NORMAL_HIT_TYPES[hitType];
   game.currentSpins = 0;
   game.lastHitSpins = game.totalSpins;
-  game.normalHitCounts[hitType]++;
-  addBalls(info.actual);
-  game.pending = { ...game.pending, hitType, info, interval };
-  addLog(`${interval}回転で${info.nominal}大当たり ＋${info.actual}球`, 'win');
+  addBalls(NORMAL_HIT_ACTUAL);
+  game.pending = { interval };
+  addLog(`${interval}回転で${NORMAL_HIT_NOMINAL}大当たり ＋${NORMAL_HIT_ACTUAL}球`, 'win');
   setState('normal_hit_result');
 }
 
@@ -110,8 +108,8 @@ function autoSpin(count) {
   setState('normal_idle');
 }
 
-function handlePreviewJudge() {
-  if (game.pending.isWin) {
+function handleEnzokuJudge() {
+  if (game.pending.type === 'hit') {
     resolveNormalHit(game.pending.interval);
   } else {
     addLog('はずれ');
@@ -125,13 +123,24 @@ function backToNormal() {
 }
 
 function handleNormalHitContinue() {
-  const info = game.pending.info;
-  if (info.entersRush) {
-    enterRush({ label: '初当たり', nominal: info.nominal, actual: info.actual });
-    setState('rush_idle');
+  setState('rush_entry_challenge');
+}
+
+function handleRushEntryJudge() {
+  if (rollRushEntry()) {
+    game.normalHitCounts.rushEntry++;
+    enterRush({ label: '初当たり', nominal: NORMAL_HIT_NOMINAL, actual: NORMAL_HIT_ACTUAL });
+    addLog('RUSH突入！', 'rush');
+    setState('rush_entry_win');
   } else {
-    backToNormal();
+    game.normalHitCounts.single++;
+    addLog('RUSH突入ならず…');
+    setState('rush_entry_lose');
   }
+}
+
+function handleAfterRushEntry() {
+  setState(game.mode === 'rush' ? 'rush_idle' : 'normal_idle');
 }
 
 function enterRush(entryBonus = null) {
@@ -233,6 +242,7 @@ function resetGame() {
   game.state           = 'normal_idle';
   game.mode            = 'normal';
   game.spinRate        = DEFAULT_SPIN_RATE;
+  game.enzokuConfidence = DEFAULT_ENZOKU_CONFIDENCE;
   game.mochiDama       = 0;
   game.toushi          = 0;
   game.totalSpins      = 0;
@@ -324,14 +334,27 @@ function tenThousandYenSpins() {
   return game.spinRate * 10;
 }
 
+function enzokuConfidenceOptionsHtml() {
+  return ENZOKU_CONFIDENCE_OPTIONS.map(pct =>
+    `<option value="${pct}" ${pct === game.enzokuConfidence ? 'selected' : ''}>${pct}%</option>`
+  ).join('');
+}
+
 function buildNormalIdleScreen(interactive) {
   const startAttr  = interactive ? ' onclick="handleStart()"' : '';
+  const confAttr   = interactive ? ' onchange="handleEnzokuConfidenceChange(this.value)"' : '';
   const rateAttr   = interactive ? ' onchange="handleSpinRateChange(this.value)"' : '';
   const spinAttr   = interactive ? ` onclick="autoSpin(${tenThousandYenSpins()})"` : '';
   const taitenAttr = interactive ? ' onclick="handleTaiten()"' : '';
   return `<div class="screen">
     <button class="btn-start"${startAttr}>START</button>
     <p class="prob-hint">大当たり確率 1/349.9</p>
+    <div class="spin-rate-block">
+      <span class="spin-rate-label">先バレ信頼度</span>
+      <select class="spin-rate-select"${confAttr}>
+        ${enzokuConfidenceOptionsHtml()}
+      </select>
+    </div>
     <div class="spin-rate-block">
       <span class="spin-rate-label">1000円あたりの回転数</span>
       <select class="spin-rate-select"${rateAttr}>
@@ -354,15 +377,12 @@ function buildScreen(state) {
     case 'normal_idle':
       return buildNormalIdleScreen(true);
 
-    case 'preview': {
-      const tier = PREVIEW_TIERS[game.pending.color];
+    case 'enzoku':
       return `<div class="screen">
-        <p class="preview-label">${game.pending.interval}回転　保留変化！</p>
-        <div class="preview-tag tag-${game.pending.color}">${tier.label}保留</div>
-        <p class="shinraido">信頼度 ${Math.round(tier.confidence * 1000) / 10}%</p>
-        <button class="btn-action" onclick="handlePreviewJudge()">▶ 判定に進む</button>
+        <p class="enzoku-label">${game.pending.interval}回転　先バレ発生！</p>
+        <p class="shinraido">信頼度 ${game.enzokuConfidence}%</p>
+        <button class="btn-action" onclick="handleEnzokuJudge()">▶ 判定に進む</button>
       </div>`;
-    }
 
     case 'lose_result':
       return `<div class="screen">
@@ -370,20 +390,34 @@ function buildScreen(state) {
         <button class="btn-sub" onclick="backToNormal()" style="margin-top:8px;">続ける</button>
       </div>`;
 
-    case 'normal_hit_result': {
-      const info = game.pending.info;
-      const isRushEntry = info.entersRush;
+    case 'normal_hit_result':
       return `<div class="screen">
-        <div class="vibun-box ${isRushEntry ? 'rush-box' : ''}">
-          <p class="bonus-main ${isRushEntry ? 'premium' : 'standard'}">${info.nominal}大当たり</p>
-          <p class="bonus-sub">＋${info.actual.toLocaleString()}球獲得</p>
-          ${isRushEntry ? '<p class="bonus-sub">ST145回突入！</p>' : ''}
+        <div class="vibun-box">
+          <p class="bonus-main standard">${NORMAL_HIT_NOMINAL}大当たり</p>
+          <p class="bonus-sub">＋${NORMAL_HIT_ACTUAL.toLocaleString()}球獲得</p>
         </div>
-        <button class="btn-action" onclick="handleNormalHitContinue()">
-          ▶ ${isRushEntry ? 'RUSHへ' : '続ける'}
-        </button>
+        <button class="btn-action" onclick="handleNormalHitContinue()">▶ RUSH突入ジャッジへ</button>
       </div>`;
-    }
+
+    case 'rush_entry_challenge':
+      return `<div class="screen">
+        <p class="add-rush-title">RUSH突入ジャッジ！</p>
+        <p class="result-sub">成功率 ${Math.round(P_RUSH_ENTRY * 100)}%</p>
+        <button class="btn-action" onclick="handleRushEntryJudge()">▶ 判定</button>
+      </div>`;
+
+    case 'rush_entry_win':
+      return `<div class="screen">
+        <p class="add-rush-title">RUSH突入！</p>
+        <p class="rush-sub">ST${RUSH_ST_COUNT}回スタート</p>
+        <button class="btn-action" onclick="handleAfterRushEntry()">▶ RUSHへ</button>
+      </div>`;
+
+    case 'rush_entry_lose':
+      return `<div class="screen">
+        <p class="result-main lose" style="font-size:26px;">RUSH突入ならず…</p>
+        <button class="btn-sub" onclick="handleAfterRushEntry()" style="margin-top:12px;">続ける</button>
+      </div>`;
 
     case 'rush_idle': {
       const skipDisabled = game.rush.stRemaining <= 10;

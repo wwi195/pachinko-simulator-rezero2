@@ -28,28 +28,49 @@ test('P_HIT is 1/349.9', () => {
   assert.equal(logic.P_HIT, 1 / 349.9);
 });
 
-test('spinNormal picks a preview color first, then rolls that color\'s own confidence for the win', () => {
-  // draw 0 picks the first tier in PREVIEW_TIER_ORDER (white); draw 0 on the
-  // second roll beats any confidence, so it is a win
-  const result = withMockRandom([0, 0], () => logic.spinNormal());
-  assert.equal(result.color, 'white');
-  assert.equal(result.isWin, true);
+test('ENZOKU_CONFIDENCE_OPTIONS lists 40%/90% with 40% as default', () => {
+  assert.deepEqual(logic.ENZOKU_CONFIDENCE_OPTIONS, [40, 90]);
+  assert.equal(logic.DEFAULT_ENZOKU_CONFIDENCE, 40);
 });
 
-test('spinNormal reports a miss when the second draw exceeds the picked color\'s confidence', () => {
-  const result = withMockRandom([0, 0.999], () => logic.spinNormal());
-  assert.equal(result.color, 'white');
-  assert.equal(result.isWin, false);
+test('falseEnzokuProbability matches the confidence ratio against P_HIT', () => {
+  assert.equal(logic.falseEnzokuProbability(40), logic.P_HIT * (60 / 40));
+  assert.equal(logic.falseEnzokuProbability(90), logic.P_HIT * (10 / 90));
 });
 
-test('NORMAL_HIT_TYPES defines rushEntry (55%, 3000/2800, entersRush) and single (45%, 1500/1400)', () => {
-  assert.deepEqual(logic.NORMAL_HIT_TYPES.rushEntry, { weight: 0.55, nominal: 3000, actual: 2800, entersRush: true });
-  assert.deepEqual(logic.NORMAL_HIT_TYPES.single, { weight: 0.45, nominal: 1500, actual: 1400, entersRush: false });
+test('spinNormal returns hit when the first draw beats P_HIT', () => {
+  const result = withMockRandom([0], () => logic.spinNormal(40));
+  assert.equal(result, 'hit');
 });
 
-test('rollNormalHitType returns rushEntry when draw is under 0.55, single otherwise', () => {
-  assert.equal(withMockRandom([0], () => logic.rollNormalHitType()), 'rushEntry');
-  assert.equal(withMockRandom([0.999], () => logic.rollNormalHitType()), 'single');
+test('spinNormal returns false_enzoku when only the second draw beats falseEnzokuProbability', () => {
+  const result = withMockRandom([0.999, 0], () => logic.spinNormal(40));
+  assert.equal(result, 'false_enzoku');
+});
+
+test('spinNormal returns miss when every draw is at the high end', () => {
+  const result = withMockRandom([0.999, 0.999], () => logic.spinNormal(40));
+  assert.equal(result, 'miss');
+});
+
+test('spinNormal at 90% confidence needs a much smaller second-draw threshold', () => {
+  // false_enzoku probability at 90% confidence is P_HIT/9, far below 0.05
+  const result = withMockRandom([0.999, 0.05], () => logic.spinNormal(90));
+  assert.equal(result, 'miss');
+});
+
+test('NORMAL_HIT_NOMINAL/ACTUAL are 1500/1400', () => {
+  assert.equal(logic.NORMAL_HIT_NOMINAL, 1500);
+  assert.equal(logic.NORMAL_HIT_ACTUAL, 1400);
+});
+
+test('P_RUSH_ENTRY is 55%', () => {
+  assert.equal(logic.P_RUSH_ENTRY, 0.55);
+});
+
+test('rollRushEntry is true only under P_RUSH_ENTRY (55%)', () => {
+  assert.equal(withMockRandom([0], () => logic.rollRushEntry()), true);
+  assert.equal(withMockRandom([0.6], () => logic.rollRushEntry()), false);
 });
 
 test('P_RUSH is 1/99.9 and RUSH_ST_COUNT is 145', () => {
@@ -123,29 +144,4 @@ test('applyRushSpin on a small hit adds 280 actual / 300 nominal', () => {
   assert.equal(outcome, 'hit_small');
   assert.equal(rushState.actualBalls, 280);
   assert.equal(rushState.nominalBalls, 300);
-});
-
-test('PREVIEW_TIER_ORDER lists white, purpleCrystal, purple, red, gold, rainbow with occurrence/confidence', () => {
-  assert.deepEqual(logic.PREVIEW_TIER_ORDER, ['white', 'purpleCrystal', 'purple', 'red', 'gold', 'rainbow']);
-  assert.equal(logic.PREVIEW_TIERS.rainbow.confidence, 0.98);
-  assert.equal(logic.PREVIEW_TIERS.gold.confidence, 0.786);
-  assert.equal(logic.PREVIEW_TIERS.red.confidence, 0.503);
-  assert.equal(logic.PREVIEW_TIERS.purple.confidence, 0.204);
-  assert.equal(logic.PREVIEW_TIERS.purpleCrystal.confidence, 0.07);
-});
-
-test('white tier occurrence/confidence are derived so the overall weighted win rate equals P_HIT exactly', () => {
-  const total = logic.PREVIEW_TIER_ORDER.reduce(
-    (sum, k) => sum + logic.PREVIEW_TIERS[k].occurrence * logic.PREVIEW_TIERS[k].confidence, 0
-  );
-  assert.ok(Math.abs(total - logic.P_HIT) < 1e-12);
-  const occSum = logic.PREVIEW_TIER_ORDER.reduce((sum, k) => sum + logic.PREVIEW_TIERS[k].occurrence, 0);
-  assert.ok(Math.abs(occSum - 1) < 1e-12);
-});
-
-test('rollPreviewColor picks the first tier whose cumulative occurrence share the draw falls under', () => {
-  assert.equal(withMockRandom([0], () => logic.rollPreviewColor()), 'white');
-  const afterWhite = logic.PREVIEW_TIERS.white.occurrence + 0.0000001;
-  assert.equal(withMockRandom([afterWhite], () => logic.rollPreviewColor()), 'purpleCrystal');
-  assert.equal(withMockRandom([0.9999999999], () => logic.rollPreviewColor()), 'rainbow');
 });
