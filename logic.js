@@ -11,19 +11,18 @@ function calcSpinCost(spinRate) {
 
 const P_HIT = 1 / 349.9;
 
-const ENZOKU_CONFIDENCE_OPTIONS = [40, 90];
-const DEFAULT_ENZOKU_CONFIDENCE = 40;
+const ENZOKU_CONFIDENCE = 40;
 
-function falseEnzokuProbability(confidencePercent) {
-  return P_HIT * ((100 - confidencePercent) / confidencePercent);
+function falseEnzokuProbability() {
+  return P_HIT * ((100 - ENZOKU_CONFIDENCE) / ENZOKU_CONFIDENCE);
 }
 
 // 先バレのみのシンプルな予告方式。本物の当たり(P_HIT)と、外れなのに先バレが
 // 出る偽陽性(falseEnzokuProbability)の合算が「先バレ発生率」となり、その中で
-// 本物が占める割合がプレイヤー選択の信頼度(40%/90%)と一致する。
-function spinNormal(confidencePercent) {
+// 本物が占める割合が信頼度(固定40%)と一致する。
+function spinNormal() {
   if (Math.random() < P_HIT) return 'hit';
-  if (Math.random() < falseEnzokuProbability(confidencePercent)) return 'false_enzoku';
+  if (Math.random() < falseEnzokuProbability()) return 'false_enzoku';
   return 'miss';
 }
 
@@ -121,8 +120,7 @@ if (typeof module !== 'undefined' && module.exports) {
     DEFAULT_SPIN_RATE,
     calcSpinCost,
     P_HIT,
-    ENZOKU_CONFIDENCE_OPTIONS,
-    DEFAULT_ENZOKU_CONFIDENCE,
+    ENZOKU_CONFIDENCE,
     falseEnzokuProbability,
     spinNormal,
     NORMAL_HIT_NOMINAL,

@@ -4,7 +4,6 @@ const game = {
   state: 'normal_idle',
   mode: 'normal',
   spinRate: DEFAULT_SPIN_RATE,
-  enzokuConfidence: DEFAULT_ENZOKU_CONFIDENCE,
   mochiDama: 0,
   toushi: 0,
   totalSpins: 0,
@@ -51,11 +50,6 @@ function handleSpinRateChange(value) {
   render();
 }
 
-function handleEnzokuConfidenceChange(value) {
-  game.enzokuConfidence = Number(value);
-  render();
-}
-
 // ---- 通常時ハンドラ ----
 
 function checkEigyoAlert() {
@@ -72,7 +66,7 @@ function runNormalSpin() {
   game.totalSpins++;
   game.currentSpins++;
   consumeSpinCost();
-  const result = spinNormal(game.enzokuConfidence);
+  const result = spinNormal();
   const interval = game.totalSpins - game.lastHitSpins;
 
   if (result === 'hit' || result === 'false_enzoku') {
@@ -288,7 +282,6 @@ function resetGame() {
   game.state           = 'normal_idle';
   game.mode            = 'normal';
   game.spinRate        = DEFAULT_SPIN_RATE;
-  game.enzokuConfidence = DEFAULT_ENZOKU_CONFIDENCE;
   game.mochiDama       = 0;
   game.toushi          = 0;
   game.totalSpins      = 0;
@@ -380,27 +373,14 @@ function tenThousandYenSpins() {
   return game.spinRate * 10;
 }
 
-function enzokuConfidenceOptionsHtml() {
-  return ENZOKU_CONFIDENCE_OPTIONS.map(pct =>
-    `<option value="${pct}" ${pct === game.enzokuConfidence ? 'selected' : ''}>${pct}%</option>`
-  ).join('');
-}
-
 function buildNormalIdleScreen(interactive) {
   const startAttr  = interactive ? ' onclick="handleStart()"' : '';
-  const confAttr   = interactive ? ' onchange="handleEnzokuConfidenceChange(this.value)"' : '';
   const rateAttr   = interactive ? ' onchange="handleSpinRateChange(this.value)"' : '';
   const spinAttr   = interactive ? ` onclick="autoSpin(${tenThousandYenSpins()})"` : '';
   const taitenAttr = interactive ? ' onclick="handleTaiten()"' : '';
   return `<div class="screen">
     <button class="btn-start"${startAttr}>START</button>
     <p class="prob-hint">大当たり確率 1/349.9</p>
-    <div class="spin-rate-block">
-      <span class="spin-rate-label">先バレ信頼度</span>
-      <select class="spin-rate-select"${confAttr}>
-        ${enzokuConfidenceOptionsHtml()}
-      </select>
-    </div>
     <div class="spin-rate-block">
       <span class="spin-rate-label">1000円あたりの回転数</span>
       <select class="spin-rate-select"${rateAttr}>
@@ -426,7 +406,7 @@ function buildScreen(state) {
     case 'enzoku':
       return `<div class="screen">
         <p class="enzoku-label">${game.pending.interval}回転　先バレ発生！</p>
-        <p class="shinraido">信頼度 ${game.enzokuConfidence}%</p>
+        <p class="shinraido">信頼度 ${ENZOKU_CONFIDENCE}%</p>
         <button class="btn-action" onclick="handleEnzokuJudge()">▶ 判定に進む</button>
       </div>`;
 

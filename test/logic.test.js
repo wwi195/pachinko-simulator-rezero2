@@ -28,34 +28,26 @@ test('P_HIT is 1/349.9', () => {
   assert.equal(logic.P_HIT, 1 / 349.9);
 });
 
-test('ENZOKU_CONFIDENCE_OPTIONS lists 40%/90% with 40% as default', () => {
-  assert.deepEqual(logic.ENZOKU_CONFIDENCE_OPTIONS, [40, 90]);
-  assert.equal(logic.DEFAULT_ENZOKU_CONFIDENCE, 40);
+test('ENZOKU_CONFIDENCE is fixed at 40%', () => {
+  assert.equal(logic.ENZOKU_CONFIDENCE, 40);
 });
 
-test('falseEnzokuProbability matches the confidence ratio against P_HIT', () => {
-  assert.equal(logic.falseEnzokuProbability(40), logic.P_HIT * (60 / 40));
-  assert.equal(logic.falseEnzokuProbability(90), logic.P_HIT * (10 / 90));
+test('falseEnzokuProbability matches the fixed 40% confidence ratio against P_HIT', () => {
+  assert.equal(logic.falseEnzokuProbability(), logic.P_HIT * (60 / 40));
 });
 
 test('spinNormal returns hit when the first draw beats P_HIT', () => {
-  const result = withMockRandom([0], () => logic.spinNormal(40));
+  const result = withMockRandom([0], () => logic.spinNormal());
   assert.equal(result, 'hit');
 });
 
 test('spinNormal returns false_enzoku when only the second draw beats falseEnzokuProbability', () => {
-  const result = withMockRandom([0.999, 0], () => logic.spinNormal(40));
+  const result = withMockRandom([0.999, 0], () => logic.spinNormal());
   assert.equal(result, 'false_enzoku');
 });
 
 test('spinNormal returns miss when every draw is at the high end', () => {
-  const result = withMockRandom([0.999, 0.999], () => logic.spinNormal(40));
-  assert.equal(result, 'miss');
-});
-
-test('spinNormal at 90% confidence needs a much smaller second-draw threshold', () => {
-  // false_enzoku probability at 90% confidence is P_HIT/9, far below 0.05
-  const result = withMockRandom([0.999, 0.05], () => logic.spinNormal(90));
+  const result = withMockRandom([0.999, 0.999], () => logic.spinNormal());
   assert.equal(result, 'miss');
 });
 
