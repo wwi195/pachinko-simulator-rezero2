@@ -48,6 +48,18 @@ function rollWeighted(table, order) {
   return order[order.length - 1];
 }
 
+// ---- 上乗せチェーン ----
+// bigヒット時、および初当たりでRUSH突入に成功した時の2ブロック目に続けて、
+// 25%を引き続ける限り無限にADDON_ACTUALが上乗せされる仕組み。
+
+const P_ADDON_CONTINUE = 0.25;
+const ADDON_NOMINAL = 1500;
+const ADDON_ACTUAL = 1400;
+
+function rollAddOn() {
+  return Math.random() < P_ADDON_CONTINUE;
+}
+
 // ---- RUSH(ST)中 ----
 
 const P_RUSH = 1 / 99.9;
@@ -117,6 +129,10 @@ if (typeof module !== 'undefined' && module.exports) {
     NORMAL_HIT_ACTUAL,
     P_RUSH_ENTRY,
     rollRushEntry,
+    P_ADDON_CONTINUE,
+    ADDON_NOMINAL,
+    ADDON_ACTUAL,
+    rollAddOn,
     P_RUSH,
     RUSH_ST_COUNT,
     spinRush,

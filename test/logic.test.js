@@ -73,6 +73,17 @@ test('rollRushEntry is true only under P_RUSH_ENTRY (55%)', () => {
   assert.equal(withMockRandom([0.6], () => logic.rollRushEntry()), false);
 });
 
+test('P_ADDON_CONTINUE is 25%, ADDON_NOMINAL/ACTUAL are 1500/1400', () => {
+  assert.equal(logic.P_ADDON_CONTINUE, 0.25);
+  assert.equal(logic.ADDON_NOMINAL, 1500);
+  assert.equal(logic.ADDON_ACTUAL, 1400);
+});
+
+test('rollAddOn is true only under P_ADDON_CONTINUE (25%)', () => {
+  assert.equal(withMockRandom([0], () => logic.rollAddOn()), true);
+  assert.equal(withMockRandom([0.3], () => logic.rollAddOn()), false);
+});
+
 test('P_RUSH is 1/99.9 and RUSH_ST_COUNT is 145', () => {
   assert.equal(logic.P_RUSH, 1 / 99.9);
   assert.equal(logic.RUSH_ST_COUNT, 145);

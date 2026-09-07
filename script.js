@@ -130,6 +130,19 @@ function handleRushEntryJudge() {
   if (rollRushEntry()) {
     game.normalHitCounts.rushEntry++;
     enterRush({ label: '初当たり', nominal: NORMAL_HIT_NOMINAL, actual: NORMAL_HIT_ACTUAL });
+    // RUSH突入成功は2ブロック目(1500/1400)を即座に上乗せしてから、bigヒットと
+    // 同じ上乗せチェーンに入る。
+    addBalls(ADDON_ACTUAL);
+    game.rushEntryBonus = {
+      ...game.rushEntryBonus,
+      nominal: game.rushEntryBonus.nominal + ADDON_NOMINAL,
+      actual: game.rushEntryBonus.actual + ADDON_ACTUAL,
+    };
+    game.pending = {
+      addonTarget: 'entry', addOnCount: 0,
+      cumulativeNominal: game.rushEntryBonus.nominal,
+      cumulativeActual: game.rushEntryBonus.actual,
+    };
     addLog('RUSH突入！', 'rush');
     setState('rush_entry_win');
   } else {
@@ -141,6 +154,35 @@ function handleRushEntryJudge() {
 
 function handleAfterRushEntry() {
   setState(game.mode === 'rush' ? 'rush_idle' : 'normal_idle');
+}
+
+// bigヒット(RUSH中)・RUSH突入成功(通常時)、どちらも同じ上乗せチェーンを辿る。
+// game.pending.addonTarget で「game.rush」と「game.rushEntryBonus」どちらの
+// 累計に上乗せ分を加算するかを切り替える。
+function handleAddOnRoll() {
+  if (rollAddOn()) {
+    addBalls(ADDON_ACTUAL);
+    if (game.pending.addonTarget === 'entry') {
+      game.rushEntryBonus = {
+        ...game.rushEntryBonus,
+        nominal: game.rushEntryBonus.nominal + ADDON_NOMINAL,
+        actual: game.rushEntryBonus.actual + ADDON_ACTUAL,
+      };
+    } else {
+      game.rush = {
+        ...game.rush,
+        nominalBalls: game.rush.nominalBalls + ADDON_NOMINAL,
+        actualBalls: game.rush.actualBalls + ADDON_ACTUAL,
+      };
+    }
+    game.pending.cumulativeNominal += ADDON_NOMINAL;
+    game.pending.cumulativeActual += ADDON_ACTUAL;
+    game.pending.addOnCount++;
+    addLog(`上乗せ${game.pending.addOnCount}連目！ ＋${ADDON_ACTUAL}球`, 'rush');
+    setState('addon_hit');
+  } else {
+    setState('rush_idle');
+  }
 }
 
 function enterRush(entryBonus = null) {
@@ -179,7 +221,11 @@ function runRushSpin(opts = {}) {
   game.totalRushHits++;
   game.allRushStats[hitType]++;
   addBalls(actual);
-  game.pending = { hitType, nominal, actual, spinsThisCycle: game.rushCycleSpins };
+  game.pending = {
+    hitType, nominal, actual, spinsThisCycle: game.rushCycleSpins,
+    addonTarget: 'rush', addOnCount: 0,
+    cumulativeNominal: nominal, cumulativeActual: actual,
+  };
   game.rushCycleSpins = 0;
   addLog(`${nominal}個！ ＋${actual}球 (${rushState.chainCount}連)`, 'rush');
   setState('rush_hit_result');
@@ -406,12 +452,29 @@ function buildScreen(state) {
         <button class="btn-action" onclick="handleRushEntryJudge()">▶ 判定</button>
       </div>`;
 
-    case 'rush_entry_win':
+    case 'rush_entry_win': {
+      const bonus = game.rushEntryBonus;
       return `<div class="screen">
         <p class="add-rush-title">RUSH突入！</p>
-        <p class="rush-sub">ST${RUSH_ST_COUNT}回スタート</p>
-        <button class="btn-action" onclick="handleAfterRushEntry()">▶ RUSHへ</button>
+        <div class="vibun-box rush-box">
+          <p class="bonus-main premium">${bonus.nominal}個</p>
+          <p class="bonus-sub">＋${bonus.actual.toLocaleString()}球獲得</p>
+        </div>
+        <button class="btn-action" onclick="handleAddOnRoll()">▶ 上乗せ判定へ</button>
       </div>`;
+    }
+
+    case 'addon_hit': {
+      const { addOnCount, cumulativeNominal, cumulativeActual } = game.pending;
+      return `<div class="screen">
+        <p class="chain-label">上乗せ${addOnCount}連目</p>
+        <div class="vibun-box rush-box">
+          <p class="bonus-main premium">${cumulativeNominal}個！</p>
+          <p class="bonus-sub">＋${cumulativeActual.toLocaleString()}球獲得</p>
+        </div>
+        <button class="btn-action" onclick="handleAddOnRoll()">▷ 上乗せチャレンジ</button>
+      </div>`;
+    }
 
     case 'rush_entry_lose':
       return `<div class="screen">
@@ -438,15 +501,16 @@ function buildScreen(state) {
     case 'rush_hit_result': {
       const { hitType, nominal, actual, spinsThisCycle } = game.pending;
       const rankClass = hitType === 'big' ? 'premium' : hitType === 'mid' ? 'standard' : 'small';
+      const isBig = hitType === 'big';
       return `<div class="screen">
         <p class="result-sub">${spinsThisCycle}回転で当選</p>
         <p class="chain-label">${game.rush.chainCount}連チャン中</p>
         <div class="vibun-box rush-box">
-          <p class="bonus-main ${rankClass}">${nominal}個${hitType === 'big' ? '+α' : ''}</p>
+          <p class="bonus-main ${rankClass}">${nominal}個${isBig ? '+α' : ''}</p>
           <p class="bonus-sub">＋${actual.toLocaleString()}球獲得</p>
         </div>
-        <button class="btn-action" onclick="handleRushHitContinue()" style="margin-top:16px;">
-          ▶ RUSH継続へ
+        <button class="btn-action" onclick="${isBig ? 'handleAddOnRoll()' : 'handleRushHitContinue()'}" style="margin-top:16px;">
+          ▶ ${isBig ? '上乗せ判定へ' : 'RUSH継続へ'}
         </button>
       </div>`;
     }
