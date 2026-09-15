@@ -442,10 +442,10 @@ function buildScreen(state) {
       return `<div class="screen">
         <p class="add-rush-title">RUSH突入！</p>
         <div class="vibun-box rush-box">
-          <p class="bonus-main premium">${bonus.nominal}個</p>
+          <p class="bonus-main premium">超強欲3000BONUS</p>
           <p class="bonus-sub">＋${bonus.actual.toLocaleString()}球獲得</p>
         </div>
-        <button class="btn-action" onclick="handleAddOnRoll()">▶ 上乗せ判定へ</button>
+        <button class="btn-action" onclick="handleAddOnRoll()">▶ 次へ</button>
       </div>`;
     }
 
@@ -491,11 +491,11 @@ function buildScreen(state) {
         <p class="result-sub">${spinsThisCycle}回転で当選</p>
         <p class="chain-label">${game.rush.chainCount}連チャン中</p>
         <div class="vibun-box rush-box">
-          <p class="bonus-main ${rankClass}">${nominal}個${isBig ? '+α' : ''}</p>
+          <p class="bonus-main ${rankClass}">${isBig ? '超強欲3000BONUS' : nominal + '個'}</p>
           <p class="bonus-sub">＋${actual.toLocaleString()}球獲得</p>
         </div>
         <button class="btn-action" onclick="${isBig ? 'handleAddOnRoll()' : 'handleRushHitContinue()'}" style="margin-top:16px;">
-          ▶ ${isBig ? '上乗せ判定へ' : 'RUSH継続へ'}
+          ▶ ${isBig ? '次へ' : 'RUSH継続へ'}
         </button>
       </div>`;
     }
