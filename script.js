@@ -9,6 +9,7 @@ const game = {
   totalSpins: 0,
   currentSpins: 0,
   lastHitSpins: 0,
+  lastHitToushi: 0,
   normalHitCounts: { rushEntry: 0, single: 0 },
   totalRushHits: 0,
   allRushStats: { rushTotalSpins: 0, big: 0, mid: 0, small: 0 },
@@ -70,7 +71,8 @@ function runNormalSpin() {
   const interval = game.totalSpins - game.lastHitSpins;
 
   if (result === 'hit' || result === 'false_enzoku') {
-    game.pending = { type: result, interval };
+    const spentSinceLastHit = game.toushi - game.lastHitToushi;
+    game.pending = { type: result, interval, spentSinceLastHit };
     addLog(`${interval}回転で先バレ発生！`);
     setState('enzoku');
     return true;
@@ -82,8 +84,9 @@ function resolveNormalHit(interval) {
   game.currentSpins = 0;
   game.lastHitSpins = game.totalSpins;
   addBalls(NORMAL_HIT_ACTUAL);
-  game.pending = { interval };
-  addLog(`${interval}回転で${NORMAL_HIT_NOMINAL}大当たり ＋${NORMAL_HIT_ACTUAL}球`, 'win');
+  game.pending = { ...game.pending, interval };
+  game.lastHitToushi = game.toushi;
+  addLog(`${interval}回転で大兎殲滅戦BONUS ＋${NORMAL_HIT_ACTUAL}球`, 'win');
   setState('normal_hit_result');
 }
 
@@ -287,6 +290,7 @@ function resetGame() {
   game.totalSpins      = 0;
   game.currentSpins    = 0;
   game.lastHitSpins    = 0;
+  game.lastHitToushi   = 0;
   game.normalHitCounts = { rushEntry: 0, single: 0 };
   game.totalRushHits   = 0;
   game.allRushStats    = { rushTotalSpins: 0, big: 0, mid: 0, small: 0 };
@@ -406,6 +410,7 @@ function buildScreen(state) {
     case 'enzoku':
       return `<div class="screen">
         <p class="enzoku-label">${game.pending.interval}回転　先バレ発生！</p>
+        <p class="result-sub">前回大当たりから ${game.pending.spentSinceLastHit.toLocaleString()}円使用</p>
         <p class="shinraido">信頼度 ${ENZOKU_CONFIDENCE}%</p>
         <button class="btn-action" onclick="handleEnzokuJudge()">▶ 判定に進む</button>
       </div>`;
@@ -419,7 +424,7 @@ function buildScreen(state) {
     case 'normal_hit_result':
       return `<div class="screen">
         <div class="vibun-box">
-          <p class="bonus-main standard">${NORMAL_HIT_NOMINAL}大当たり</p>
+          <p class="bonus-main standard">大兎殲滅戦BONUS</p>
           <p class="bonus-sub">＋${NORMAL_HIT_ACTUAL.toLocaleString()}球獲得</p>
         </div>
         <button class="btn-action" onclick="handleNormalHitContinue()">▶ RUSH突入ジャッジへ</button>
@@ -466,7 +471,7 @@ function buildScreen(state) {
       const skipDisabled = game.rush.stRemaining <= 10;
       return `<div class="screen">
         <p class="chain-label">${game.rush.chainCount}連チャン中</p>
-        <p class="rush-title">Re:ゼロ RUSH</p>
+        <p class="rush-title">強欲RUSH</p>
         <p class="rush-sub">ST残り <span>${game.rush.stRemaining}</span> 回</p>
         <div class="rush-spin-btns">
           <button class="btn-rush-spin" onclick="handleRushSpin()">1回転</button>
