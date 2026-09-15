@@ -153,6 +153,17 @@ function handleAfterRushEntry() {
   setState(game.mode === 'rush' ? 'rush_idle' : 'normal_idle');
 }
 
+// テレビを消す時のように、中心の十字（レインボー）が閉じていく0.3秒の暗転演出。
+// アニメーション終了後にcallbackを呼んで画面を切り替える。
+function playTvOffFlash(callback) {
+  const el = document.getElementById('tv-off-flash');
+  el.classList.add('active');
+  setTimeout(() => {
+    el.classList.remove('active');
+    callback();
+  }, 300);
+}
+
 // bigヒット(RUSH中)・RUSH突入成功(通常時)、どちらも同じ上乗せチェーンを辿る。
 // game.pending.addonTarget で「game.rush」と「game.rushEntryBonus」どちらの
 // 累計に上乗せ分を加算するかを切り替える。
@@ -175,8 +186,8 @@ function handleAddOnRoll() {
     game.pending.cumulativeNominal += ADDON_NOMINAL;
     game.pending.cumulativeActual += ADDON_ACTUAL;
     game.pending.addOnCount++;
-    addLog(`上乗せ${game.pending.addOnCount}連目！ ＋${ADDON_ACTUAL}球`, 'rush');
-    setState('addon_hit');
+    addLog(`${game.pending.cumulativeNominal}BONUS！ ＋${ADDON_ACTUAL}球`, 'rush');
+    playTvOffFlash(() => setState('addon_hit'));
   } else {
     setState('rush_idle');
   }
@@ -450,14 +461,13 @@ function buildScreen(state) {
     }
 
     case 'addon_hit': {
-      const { addOnCount, cumulativeNominal, cumulativeActual } = game.pending;
+      const { cumulativeNominal, cumulativeActual } = game.pending;
       return `<div class="screen">
-        <p class="chain-label">上乗せ${addOnCount}連目</p>
         <div class="vibun-box rush-box">
-          <p class="bonus-main premium">${cumulativeNominal}個！</p>
+          <p class="bonus-main premium">${cumulativeNominal}BONUS</p>
           <p class="bonus-sub">＋${cumulativeActual.toLocaleString()}球獲得</p>
         </div>
-        <button class="btn-action" onclick="handleAddOnRoll()">▷ 上乗せチャレンジ</button>
+        <button class="btn-action" onclick="handleAddOnRoll()">▶ 次へ</button>
       </div>`;
     }
 
