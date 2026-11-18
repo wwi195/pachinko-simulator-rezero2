@@ -578,3 +578,20 @@ body {
   color: #c9a227;
 }
 .addon-rarity:empty { display: none; }
+
+/* 初当たり回転数 */
+.hit-interval {
+  margin: 4px 0 0;
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+}
+.hit-interval span { font-size: 18px; font-weight: bold; color: #7c4dff; }
+.hit-interval-prob {
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  font-weight: bold;
+  line-height: 1.6;
+  color: #c9a227;
+}

@@ -172,3 +172,10 @@ test('chainProbability: 1連 ends with prob 1-P_ST_HIT, deeper chains decay by P
 test('enzokuMissStreakProbability is 0.6^n for 40% confidence', () => {
   assert.ok(Math.abs(logic.enzokuMissStreakProbability(10) - Math.pow(0.6, 10)) < 1e-12);
 });
+
+test('hitIntervalProbability: atLeast and within use 1/349.9', () => {
+  const q = 1 - 1 / 349.9;
+  const r = logic.hitIntervalProbability(1200);
+  assert.ok(Math.abs(r.atLeast - Math.pow(q, 1199)) < 1e-12);
+  assert.ok(Math.abs(logic.hitIntervalProbability(50).within - (1 - Math.pow(q, 50))) < 1e-12);
+});

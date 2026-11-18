@@ -17,6 +17,16 @@ function falseEnzokuProbability() {
   return P_HIT * ((100 - ENZOKU_CONFIDENCE) / ENZOKU_CONFIDENCE);
 }
 
+// n回転目で当たった時の出現率
+// 深いハマり: n回転以上かかる確率 = (1-p)^(n-1)
+// 早い当たり: n回転以内に当たる確率 = 1-(1-p)^n
+function hitIntervalProbability(n) {
+  return {
+    atLeast: Math.pow(1 - P_HIT, n - 1),
+    within: 1 - Math.pow(1 - P_HIT, n),
+  };
+}
+
 // 先バレがn回連続ではずれる確率 = (1 - 信頼度)^n
 function enzokuMissStreakProbability(n) {
   return Math.pow(1 - ENZOKU_CONFIDENCE / 100, n);
@@ -156,6 +166,7 @@ if (typeof module !== 'undefined' && module.exports) {
     P_HIT,
     ENZOKU_CONFIDENCE,
     falseEnzokuProbability,
+    hitIntervalProbability,
     enzokuMissStreakProbability,
     spinNormal,
     NORMAL_HIT_NOMINAL,
