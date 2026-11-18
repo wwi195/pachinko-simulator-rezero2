@@ -148,3 +148,14 @@ test('applyRushSpin on a small hit adds 280 actual / 300 nominal', () => {
   assert.equal(rushState.actualBalls, 280);
   assert.equal(rushState.nominalBalls, 300);
 });
+
+test('rollAddOnTiming splits 3/2/1/0 at 5/15/30/50%', () => {
+  assert.equal(withMockRandom([0.00], () => logic.rollAddOnTiming()), 3);
+  assert.equal(withMockRandom([0.049], () => logic.rollAddOnTiming()), 3);
+  assert.equal(withMockRandom([0.05], () => logic.rollAddOnTiming()), 2);
+  assert.equal(withMockRandom([0.199], () => logic.rollAddOnTiming()), 2);
+  assert.equal(withMockRandom([0.20], () => logic.rollAddOnTiming()), 1);
+  assert.equal(withMockRandom([0.499], () => logic.rollAddOnTiming()), 1);
+  assert.equal(withMockRandom([0.50], () => logic.rollAddOnTiming()), 0);
+  assert.equal(withMockRandom([0.999], () => logic.rollAddOnTiming()), 0);
+});

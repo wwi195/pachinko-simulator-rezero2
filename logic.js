@@ -59,6 +59,19 @@ function rollAddOn() {
   return Math.random() < P_ADDON_CONTINUE;
 }
 
+// 上乗せ当選時、カウントダウン(3→2→1→0)のどのタイミングで発生するかの振り分け
+const ADDON_TIMING_WEIGHTS = {
+  3: { weight: 0.05 },
+  2: { weight: 0.15 },
+  1: { weight: 0.30 },
+  0: { weight: 0.50 },
+};
+const ADDON_TIMING_ORDER = [3, 2, 1, 0];
+
+function rollAddOnTiming() {
+  return rollWeighted(ADDON_TIMING_WEIGHTS, ADDON_TIMING_ORDER);
+}
+
 // ---- RUSH(ST)中 ----
 
 const P_RUSH = 1 / 99.9;
@@ -131,6 +144,9 @@ if (typeof module !== 'undefined' && module.exports) {
     ADDON_NOMINAL,
     ADDON_ACTUAL,
     rollAddOn,
+    ADDON_TIMING_WEIGHTS,
+    ADDON_TIMING_ORDER,
+    rollAddOnTiming,
     P_RUSH,
     RUSH_ST_COUNT,
     spinRush,

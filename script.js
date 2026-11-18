@@ -167,30 +167,82 @@ function playTvOffFlash(callback) {
 // bigヒット(RUSH中)・RUSH突入成功(通常時)、どちらも同じ上乗せチェーンを辿る。
 // game.pending.addonTarget で「game.rush」と「game.rushEntryBonus」どちらの
 // 累計に上乗せ分を加算するかを切り替える。
-function handleAddOnRoll() {
-  if (rollAddOn()) {
-    addBalls(ADDON_ACTUAL);
-    if (game.pending.addonTarget === 'entry') {
-      game.rushEntryBonus = {
-        ...game.rushEntryBonus,
-        nominal: game.rushEntryBonus.nominal + ADDON_NOMINAL,
-        actual: game.rushEntryBonus.actual + ADDON_ACTUAL,
-      };
-    } else {
-      game.rush = {
-        ...game.rush,
-        nominalBalls: game.rush.nominalBalls + ADDON_NOMINAL,
-        actualBalls: game.rush.actualBalls + ADDON_ACTUAL,
-      };
-    }
-    game.pending.cumulativeNominal += ADDON_NOMINAL;
-    game.pending.cumulativeActual += ADDON_ACTUAL;
-    game.pending.addOnCount++;
-    addLog(`${game.pending.cumulativeNominal}BONUS！ ＋${ADDON_ACTUAL}球`, 'rush');
-    playTvOffFlash(() => setState('addon_hit'));
+function applyAddOn() {
+  addBalls(ADDON_ACTUAL);
+  if (game.pending.addonTarget === 'entry') {
+    game.rushEntryBonus = {
+      ...game.rushEntryBonus,
+      nominal: game.rushEntryBonus.nominal + ADDON_NOMINAL,
+      actual: game.rushEntryBonus.actual + ADDON_ACTUAL,
+    };
   } else {
-    setState('rush_idle');
+    game.rush = {
+      ...game.rush,
+      nominalBalls: game.rush.nominalBalls + ADDON_NOMINAL,
+      actualBalls: game.rush.actualBalls + ADDON_ACTUAL,
+    };
   }
+  game.pending.cumulativeNominal += ADDON_NOMINAL;
+  game.pending.cumulativeActual += ADDON_ACTUAL;
+  game.pending.addOnCount++;
+  addLog(`${game.pending.cumulativeNominal}BONUS！ ＋${ADDON_ACTUAL}球`, 'rush');
+  playTvOffFlash(() => setState('addon_hit'));
+}
+
+// ---- 上乗せカウントダウン演出 ----
+// 超強欲3000BONUS表示後、金色の 3→2→1→0 カウントダウンを行う。
+// 上乗せ(25%)当選時は、5%/15%/30%/50% で 3/2/1/0 のいずれかのタイミングで発生。
+// 非当選時は 0 表示と同時に「次へ」のロックを解除する。
+const COUNTDOWN_STATES = ['rush_entry_win', 'addon_hit'];
+const COUNTDOWN_STEP_MS = 1000;
+const COUNTDOWN_HIT_DELAY_MS = 600;
+let countdownTimer = null;
+
+function needsCountdown(state) {
+  if (COUNTDOWN_STATES.includes(state)) return true;
+  return state === 'rush_hit_result' && game.pending.hitType === 'big';
+}
+
+function clearCountdown() {
+  if (countdownTimer) clearTimeout(countdownTimer);
+  countdownTimer = null;
+}
+
+function startAddOnCountdown() {
+  clearCountdown();
+  const hit = rollAddOn();
+  const timing = hit ? rollAddOnTiming() : null;
+  const tick = (n) => {
+    const el = document.getElementById('addon-countdown');
+    if (!el) return;
+    el.textContent = n;
+    el.classList.remove('pop');
+    void el.offsetWidth;
+    el.classList.add('pop');
+    if (hit && n === timing) {
+      countdownTimer = setTimeout(() => { countdownTimer = null; applyAddOn(); }, COUNTDOWN_HIT_DELAY_MS);
+    } else if (n === 0) {
+      const btn = document.getElementById('addon-next-btn');
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove('locked');
+        btn.textContent = '▶ 次へ';
+      }
+    } else {
+      countdownTimer = setTimeout(() => tick(n - 1), COUNTDOWN_STEP_MS);
+    }
+  };
+  tick(3);
+}
+
+function handleAddOnNext() {
+  clearCountdown();
+  setState('rush_idle');
+}
+
+function addOnCountdownHtml() {
+  return `<p id="addon-countdown" class="addon-countdown"></p>
+    <button id="addon-next-btn" class="btn-action locked" disabled onclick="handleAddOnNext()">🔒 次へ</button>`;
 }
 
 function enterRush(entryBonus = null) {
@@ -317,8 +369,10 @@ function resetGame() {
 // ---- 状態セット & レンダリング ----
 
 function setState(state) {
+  clearCountdown();
   game.state = state;
   render();
+  if (needsCountdown(state)) startAddOnCountdown();
 }
 
 function render() {
@@ -456,7 +510,7 @@ function buildScreen(state) {
           <p class="bonus-main premium">超強欲3000BONUS</p>
           <p class="bonus-sub">＋${bonus.actual.toLocaleString()}球獲得</p>
         </div>
-        <button class="btn-action" onclick="handleAddOnRoll()">▶ 次へ</button>
+        ${addOnCountdownHtml()}
       </div>`;
     }
 
@@ -467,7 +521,7 @@ function buildScreen(state) {
           <p class="bonus-main premium">${cumulativeNominal}BONUS</p>
           <p class="bonus-sub">＋${cumulativeActual.toLocaleString()}球獲得</p>
         </div>
-        <button class="btn-action" onclick="handleAddOnRoll()">▶ 次へ</button>
+        ${addOnCountdownHtml()}
       </div>`;
     }
 
@@ -504,9 +558,9 @@ function buildScreen(state) {
           <p class="bonus-main ${rankClass}">${isBig ? '超強欲3000BONUS' : nominal + '個'}</p>
           <p class="bonus-sub">＋${actual.toLocaleString()}球獲得</p>
         </div>
-        <button class="btn-action" onclick="${isBig ? 'handleAddOnRoll()' : 'handleRushHitContinue()'}" style="margin-top:16px;">
-          ▶ ${isBig ? '次へ' : 'RUSH継続へ'}
-        </button>
+        ${isBig ? addOnCountdownHtml() : `<button class="btn-action" onclick="handleRushHitContinue()" style="margin-top:16px;">
+          ▶ RUSH継続へ
+        </button>`}
       </div>`;
     }
 
