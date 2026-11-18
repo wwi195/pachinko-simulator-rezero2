@@ -237,12 +237,28 @@ function startAddOnCountdown() {
           btn.classList.remove('locked');
           btn.textContent = '▶ 次へ';
         }
+        showAddOnRarity();
       }, COUNTDOWN_UNLOCK_DELAY_MS);
     } else {
       countdownTimer = setTimeout(() => tick(n - 1), COUNTDOWN_STEP_MS);
     }
   };
   tick(3);
+}
+
+// 6000BONUS以上で上乗せが終わった時、その到達確率を表示する
+const ADDON_RARITY_MIN_NOMINAL = 6000;
+
+function showAddOnRarity() {
+  const { cumulativeNominal, addOnCount } = game.pending;
+  if (cumulativeNominal < ADDON_RARITY_MIN_NOMINAL) return;
+  const el = document.getElementById('addon-rarity');
+  if (!el) return;
+  const prob = addOnStreakProbability(addOnCount);
+  const pct = prob * 100;
+  const pctText = pct >= 1 ? pct.toFixed(2) : pct >= 0.01 ? pct.toFixed(3) : pct.toPrecision(2);
+  const rare = pct < 1 ? `<br>約${Math.round(1 / prob).toLocaleString()}回に1回の割合です` : '';
+  el.innerHTML = `${cumulativeNominal}BONUS到達確率 ${pctText}%<br>（上乗せ25%を${addOnCount}回連続）${rare}`;
 }
 
 function handleAddOnNext() {
@@ -265,6 +281,7 @@ function probRowHtml(label, prob) {
 
 function addOnCountdownHtml() {
   return `<p id="addon-countdown" class="addon-countdown"></p>
+    <p id="addon-rarity" class="addon-rarity"></p>
     <button id="addon-next-btn" class="btn-action locked" disabled onclick="handleAddOnNext()">🔒 次へ</button>`;
 }
 

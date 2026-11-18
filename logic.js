@@ -64,6 +64,11 @@ function rollAddOn() {
   return Math.random() < P_ADDON_CONTINUE;
 }
 
+// 上乗せをn回連続で引く確率 = 0.25^n
+function addOnStreakProbability(n) {
+  return Math.pow(P_ADDON_CONTINUE, n);
+}
+
 // 上乗せ当選時、カウントダウン(3→2→1→0)のどのタイミングで発生するかの振り分け
 const ADDON_TIMING_WEIGHTS = {
   3: { weight: 0.05 },
@@ -161,6 +166,7 @@ if (typeof module !== 'undefined' && module.exports) {
     ADDON_NOMINAL,
     ADDON_ACTUAL,
     rollAddOn,
+    addOnStreakProbability,
     ADDON_TIMING_WEIGHTS,
     ADDON_TIMING_ORDER,
     rollAddOnTiming,
