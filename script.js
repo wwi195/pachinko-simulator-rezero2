@@ -196,6 +196,7 @@ function applyAddOn() {
 const COUNTDOWN_STATES = ['rush_entry_win', 'addon_hit'];
 const COUNTDOWN_STEP_MS = 667;
 const COUNTDOWN_HIT_DELAY_MS = 400;
+const COUNTDOWN_UNLOCK_DELAY_MS = 200;
 let countdownTimer = null;
 
 function needsCountdown(state) {
@@ -222,12 +223,15 @@ function startAddOnCountdown() {
     if (hit && n === timing) {
       countdownTimer = setTimeout(() => { countdownTimer = null; applyAddOn(); }, COUNTDOWN_HIT_DELAY_MS);
     } else if (n === 0) {
-      const btn = document.getElementById('addon-next-btn');
-      if (btn) {
-        btn.disabled = false;
-        btn.classList.remove('locked');
-        btn.textContent = '▶ 次へ';
-      }
+      countdownTimer = setTimeout(() => {
+        countdownTimer = null;
+        const btn = document.getElementById('addon-next-btn');
+        if (btn) {
+          btn.disabled = false;
+          btn.classList.remove('locked');
+          btn.textContent = '▶ 次へ';
+        }
+      }, COUNTDOWN_UNLOCK_DELAY_MS);
     } else {
       countdownTimer = setTimeout(() => tick(n - 1), COUNTDOWN_STEP_MS);
     }
