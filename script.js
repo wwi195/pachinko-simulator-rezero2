@@ -280,7 +280,7 @@ function probRowHtml(label, prob) {
 }
 
 // 初当たりの回転数表示。1000回転超・100回転未満はその出現率も表示
-function hitIntervalHtml(n) {
+function hitIntervalProbHtml(n) {
   let probHtml = '';
   let prob = null, label = '';
   if (n > 1000) {
@@ -296,7 +296,7 @@ function hitIntervalHtml(n) {
     const rare = pct < 1 ? `<br>約${Math.round(1 / prob).toLocaleString()}回に1回の割合です` : '';
     probHtml = `<p class="hit-interval-prob">${label} ${pctText}%${rare}</p>`;
   }
-  return `<p class="hit-interval">前回大当たりから <span>${n.toLocaleString()}</span>回転で当選</p>${probHtml}`;
+  return probHtml;
 }
 
 // RUSH中の獲得出玉（初当たり分＋RUSH中）。1万発超でレインボー表示
@@ -576,11 +576,12 @@ function buildScreen(state) {
 
     case 'normal_hit_result':
       return `<div class="screen">
+        <p class="hit-interval"><span>${game.pending.interval.toLocaleString()}</span>回転</p>
         <div class="vibun-box">
           <p class="bonus-main standard">大兎殲滅戦BONUS</p>
           <p class="bonus-sub">＋${NORMAL_HIT_ACTUAL.toLocaleString()}球獲得</p>
         </div>
-        ${hitIntervalHtml(game.pending.interval)}
+        ${hitIntervalProbHtml(game.pending.interval)}
         <button class="btn-action" onclick="handleNormalHitContinue()">▶ RUSH突入ジャッジへ</button>
       </div>`;
 
