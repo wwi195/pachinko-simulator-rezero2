@@ -497,6 +497,14 @@ body {
 .rr-val   { font-size: 15px; font-weight: bold; color: #333; }
 .rr-val.gold { color: #c9a227; font-size: 18px; }
 
+.rr-rare {
+  margin: 0 0 4px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: bold;
+  color: #c9a227;
+}
+
 .result-hr { border: none; border-top: 1px solid #eee; margin: 8px 0; }
 
 .rr-section {

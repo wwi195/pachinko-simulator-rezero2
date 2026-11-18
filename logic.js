@@ -81,6 +81,17 @@ function spinRush() {
   return Math.random() < P_RUSH ? 'hit' : 'miss';
 }
 
+// ST145回転中に1回以上当選する確率（約76.7%）
+const P_ST_HIT = 1 - Math.pow(1 - P_RUSH, RUSH_ST_COUNT);
+
+// RUSH中の当選回数(rushHits)に対する分布。
+// exact: ちょうどその回数で終わる確率 = p^k × (1-p)
+// atLeast: その回数以上に到達する確率 = p^k
+function chainProbability(rushHits) {
+  const atLeast = Math.pow(P_ST_HIT, rushHits);
+  return { exact: atLeast * (1 - P_ST_HIT), atLeast };
+}
+
 const RUSH_HIT_TYPES = {
   big:   { weight: 0.25, nominal: 3000, actual: 2800 },
   mid:   { weight: 0.55, nominal: 1500, actual: 1400 },
@@ -150,6 +161,8 @@ if (typeof module !== 'undefined' && module.exports) {
     P_RUSH,
     RUSH_ST_COUNT,
     spinRush,
+    P_ST_HIT,
+    chainProbability,
     RUSH_HIT_TYPES,
     RUSH_HIT_TYPE_ORDER,
     rollRushHitType,

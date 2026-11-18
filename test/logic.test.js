@@ -159,3 +159,12 @@ test('rollAddOnTiming splits 3/2/1/0 at 5/15/30/50%', () => {
   assert.equal(withMockRandom([0.50], () => logic.rollAddOnTiming()), 0);
   assert.equal(withMockRandom([0.999], () => logic.rollAddOnTiming()), 0);
 });
+
+test('chainProbability: 1連 ends with prob 1-P_ST_HIT, deeper chains decay by P_ST_HIT', () => {
+  assert.ok(Math.abs(logic.P_ST_HIT - 0.7675) < 0.001);
+  const one = logic.chainProbability(0);
+  assert.equal(one.atLeast, 1);
+  assert.ok(Math.abs(one.exact - (1 - logic.P_ST_HIT)) < 1e-12);
+  const ten = logic.chainProbability(9);
+  assert.ok(Math.abs(ten.atLeast - Math.pow(logic.P_ST_HIT, 9)) < 1e-12);
+});

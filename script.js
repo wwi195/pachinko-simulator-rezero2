@@ -240,6 +240,19 @@ function handleAddOnNext() {
   setState('rush_idle');
 }
 
+// 確率の表示。1%未満なら「約○回に1回」の希少性表示を付ける
+function probRowHtml(label, prob) {
+  const pct = prob * 100;
+  const pctText = pct >= 1 ? pct.toFixed(1) : pct >= 0.01 ? pct.toFixed(2) : pct.toPrecision(2);
+  const rare = pct < 1
+    ? `<p class="rr-rare">約${Math.round(1 / prob).toLocaleString()}回に1回の割合です</p>`
+    : '';
+  return `<div class="result-row">
+      <span class="rr-label">${label}</span>
+      <span class="rr-val">${pctText}%</span>
+    </div>${rare}`;
+}
+
 function addOnCountdownHtml() {
   return `<p id="addon-countdown" class="addon-countdown"></p>
     <button id="addon-next-btn" class="btn-action locked" disabled onclick="handleAddOnNext()">🔒 次へ</button>`;
@@ -604,6 +617,7 @@ function buildScreen(state) {
       const totalActual  = s.actualBalls  + (bonus ? bonus.actual  : 0);
       const totalNominal = s.nominalBalls + (bonus ? bonus.nominal : 0);
       const totalHits    = s.chainCount + (bonus ? 1 : 0);
+      const dist         = chainProbability(s.chainCount);
 
       return `<div class="screen">
         <p class="rush-result-title">RUSH リザルト</p>
@@ -620,6 +634,10 @@ function buildScreen(state) {
             <span class="rr-label">表示出玉</span>
             <span class="rr-val">${totalNominal.toLocaleString()}個</span>
           </div>
+          <hr class="result-hr">
+          <p class="rr-section">連チャン分布（ST当選率 ${(P_ST_HIT * 100).toFixed(1)}%）</p>
+          ${probRowHtml(`${totalHits}連で終わる確率`, dist.exact)}
+          ${probRowHtml(`${totalHits}連以上に届く確率`, dist.atLeast)}
           <hr class="result-hr">
           <p class="rr-section">ボーナス内訳</p>
           ${lines.join('')}
