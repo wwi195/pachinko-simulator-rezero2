@@ -17,6 +17,11 @@ function falseEnzokuProbability() {
   return P_HIT * ((100 - ENZOKU_CONFIDENCE) / ENZOKU_CONFIDENCE);
 }
 
+// 先バレがn回連続ではずれる確率 = (1 - 信頼度)^n
+function enzokuMissStreakProbability(n) {
+  return Math.pow(1 - ENZOKU_CONFIDENCE / 100, n);
+}
+
 // 先バレのみのシンプルな予告方式。本物の当たり(P_HIT)と、外れなのに先バレが
 // 出る偽陽性(falseEnzokuProbability)の合算が「先バレ発生率」となり、その中で
 // 本物が占める割合が信頼度(固定40%)と一致する。
@@ -146,6 +151,7 @@ if (typeof module !== 'undefined' && module.exports) {
     P_HIT,
     ENZOKU_CONFIDENCE,
     falseEnzokuProbability,
+    enzokuMissStreakProbability,
     spinNormal,
     NORMAL_HIT_NOMINAL,
     NORMAL_HIT_ACTUAL,

@@ -18,6 +18,7 @@ const game = {
   rushEntryBonus: null,
   pending: {},
   eigyoAlertShown: false,
+  enzokuMissStreak: 0,
   log: [],
 };
 
@@ -105,12 +106,17 @@ function autoSpin(count) {
   setState('normal_idle');
 }
 
+const ENZOKU_STREAK_NOTICE_MIN = 3;
+
 function handleEnzokuJudge() {
   if (game.pending.type === 'hit') {
+    game.enzokuMissStreak = 0;
     resolveNormalHit(game.pending.interval);
   } else {
-    addLog('はずれ');
-    setState('lose_result');
+    game.enzokuMissStreak = (game.enzokuMissStreak || 0) + 1;
+    addLog(game.enzokuMissStreak >= ENZOKU_STREAK_NOTICE_MIN
+      ? `はずれ（先バレ${game.enzokuMissStreak}連続はずれ）` : 'はずれ');
+    setState('enzoku_lose_result');
   }
 }
 
@@ -379,6 +385,7 @@ function resetGame() {
   game.rushEntryBonus  = null;
   game.pending         = {};
   game.eigyoAlertShown = false;
+  game.enzokuMissStreak = 0;
   game.log             = [];
   render();
 }
@@ -496,6 +503,24 @@ function buildScreen(state) {
         <p class="shinraido">信頼度 ${ENZOKU_CONFIDENCE}%</p>
         <button class="btn-action" onclick="handleEnzokuJudge()">▶ 判定に進む</button>
       </div>`;
+
+    case 'enzoku_lose_result': {
+      const n = game.enzokuMissStreak;
+      let streakHtml = '';
+      if (n >= ENZOKU_STREAK_NOTICE_MIN) {
+        const prob = enzokuMissStreakProbability(n);
+        const pct = prob * 100;
+        const pctText = pct >= 1 ? pct.toFixed(1) : pct >= 0.01 ? pct.toFixed(2) : pct.toPrecision(2);
+        const rare = pct < 1 ? `<br>約${Math.round(1 / prob).toLocaleString()}回に1回の割合です` : '';
+        streakHtml = `<p class="enzoku-streak">先バレ ${n}連続はずれ<br>
+          ${n}連続ではずれる確率 ${pctText}%${rare}</p>`;
+      }
+      return `<div class="screen">
+        <p class="result-main lose">はずれ</p>
+        ${streakHtml}
+        <button class="btn-sub" onclick="backToNormal()" style="margin-top:8px;">続ける</button>
+      </div>`;
+    }
 
     case 'lose_result':
       return `<div class="screen">
