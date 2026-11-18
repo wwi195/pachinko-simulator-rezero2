@@ -194,8 +194,8 @@ function applyAddOn() {
 // 上乗せ(25%)当選時は、5%/15%/30%/50% で 3/2/1/0 のいずれかのタイミングで発生。
 // 非当選時は 0 表示と同時に「次へ」のロックを解除する。
 const COUNTDOWN_STATES = ['rush_entry_win', 'addon_hit'];
-const COUNTDOWN_STEP_MS = 1000;
-const COUNTDOWN_HIT_DELAY_MS = 600;
+const COUNTDOWN_STEP_MS = 667;
+const COUNTDOWN_HIT_DELAY_MS = 400;
 let countdownTimer = null;
 
 function needsCountdown(state) {
