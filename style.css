@@ -354,6 +354,19 @@ body {
   letter-spacing: 1px;
 }
 
+.rush-balls { margin: 0; font-size: 13px; color: #888; }
+.rush-balls span { font-size: 18px; font-weight: bold; color: #c9a227; }
+.rush-balls.rainbow,
+.rush-balls.rainbow span {
+  background: linear-gradient(90deg, #ff3b3b, #ff9d3b, #ffe93b, #3bff6a, #3bcfff, #6a3bff, #ff3bcf, #ff3b3b);
+  background-size: 400% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: rush-rainbow 3s linear infinite;
+  font-weight: bold;
+}
+
 /* 振り分けボックス */
 .vibun-box {
   width: 100%;

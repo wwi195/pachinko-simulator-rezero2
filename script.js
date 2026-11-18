@@ -299,6 +299,15 @@ function hitIntervalHtml(n) {
   return `<p class="hit-interval">前回大当たりから <span>${n.toLocaleString()}</span>回転で当選</p>${probHtml}`;
 }
 
+// RUSH中の獲得出玉（初当たり分＋RUSH中）。1万発超でレインボー表示
+const RUSH_BALLS_RAINBOW_MIN = 10000;
+
+function rushBallsHtml() {
+  const total = game.rush.actualBalls + (game.rushEntryBonus ? game.rushEntryBonus.actual : 0);
+  const cls = total > RUSH_BALLS_RAINBOW_MIN ? 'rush-balls rainbow' : 'rush-balls';
+  return `<p class="${cls}">獲得出玉 <span>${total.toLocaleString()}</span>球</p>`;
+}
+
 function addOnCountdownHtml() {
   return `<p id="addon-countdown" class="addon-countdown"></p>
     <p id="addon-rarity" class="addon-rarity"></p>
@@ -615,6 +624,7 @@ function buildScreen(state) {
       const skipDisabled = game.rush.stRemaining <= 10;
       return `<div class="screen">
         <p class="chain-label">${game.rush.chainCount}連チャン中</p>
+        ${rushBallsHtml()}
         <p class="rush-title">強欲RUSH</p>
         <p class="rush-sub">ST残り <span>${game.rush.stRemaining}</span> 回</p>
         <div class="rush-spin-btns">
@@ -634,6 +644,7 @@ function buildScreen(state) {
       return `<div class="screen">
         <p class="result-sub">${spinsThisCycle}回転で当選</p>
         <p class="chain-label">${game.rush.chainCount}連チャン中</p>
+        ${rushBallsHtml()}
         <div class="vibun-box rush-box">
           <p class="bonus-main ${rankClass}">${isBig ? '超強欲3000BONUS' : nominal + '個'}</p>
           <p class="bonus-sub">＋${actual.toLocaleString()}球獲得</p>
