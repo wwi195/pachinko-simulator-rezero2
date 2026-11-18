@@ -512,7 +512,7 @@ function buildScreen(state) {
         const pct = prob * 100;
         const pctText = pct >= 1 ? pct.toFixed(1) : pct >= 0.01 ? pct.toFixed(2) : pct.toPrecision(2);
         const rare = pct < 1 ? `<br>約${Math.round(1 / prob).toLocaleString()}回に1回の割合です` : '';
-        streakHtml = `<p class="enzoku-streak">先バレ ${n}連続はずれ<br>
+        streakHtml = `<p class="enzoku-streak">先バレはずれ　${n}回連続中<br>
           ${n}連続ではずれる確率 ${pctText}%${rare}</p>`;
       }
       return `<div class="screen">
