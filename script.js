@@ -356,7 +356,7 @@ function runRushSpin(opts = {}) {
     cumulativeNominal: nominal, cumulativeActual: actual,
   };
   game.rushCycleSpins = 0;
-  addLog(`${nominal}個！ ＋${actual}球 (${rushState.chainCount}連)`, 'rush');
+  addLog(`${nominal}個！ ＋${actual}球 (${rushState.chainCount + 1}連)`, 'rush');
   setState('rush_hit_result');
   return true;
 }
@@ -624,7 +624,7 @@ function buildScreen(state) {
     case 'rush_idle': {
       const skipDisabled = game.rush.stRemaining <= 10;
       return `<div class="screen">
-        <p class="chain-label">${game.rush.chainCount}連チャン中</p>
+        <p class="chain-label">${game.rush.chainCount + 1}連チャン中</p>
         ${rushBallsHtml()}
         <p class="rush-title">強欲RUSH</p>
         <p class="rush-sub">ST残り <span>${game.rush.stRemaining}</span> 回</p>
@@ -644,7 +644,7 @@ function buildScreen(state) {
       const isBig = hitType === 'big';
       return `<div class="screen">
         <p class="result-sub">${spinsThisCycle}回転で当選</p>
-        <p class="chain-label">${game.rush.chainCount}連チャン中</p>
+        <p class="chain-label">${game.rush.chainCount + 1}連チャン中</p>
         ${rushBallsHtml()}
         <div class="vibun-box rush-box">
           <p class="bonus-main ${rankClass}">${isBig ? '超強欲3000BONUS' : nominal + '個'}</p>
