@@ -292,7 +292,7 @@ body {
 
 /* 上乗せ成功時の暗転演出（テレビを消す時のように、中心の十字が閉じていく） */
 #tv-off-flash {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 50;
   background: #000;
