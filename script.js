@@ -312,7 +312,18 @@ function rushBallsHtml() {
 function addOnCountdownHtml() {
   return `<p id="addon-countdown" class="addon-countdown"></p>
     <p id="addon-rarity" class="addon-rarity"></p>
-    <button id="addon-next-btn" class="btn-action locked" disabled onclick="handleAddOnNext()">🔒 次へ</button>`;
+    <button id="addon-judge-btn" class="btn-action" onclick="handleAddOnJudge()">▶ 上乗せジャッジ</button>
+    <button id="addon-next-btn" class="btn-action locked" disabled hidden onclick="handleAddOnNext()">🔒 次へ</button>`;
+}
+
+// 「上乗せジャッジ」を押したらカウントダウン（3→2→1→0）を開始する
+function handleAddOnJudge() {
+  const judgeBtn = document.getElementById('addon-judge-btn');
+  if (!judgeBtn) return;
+  judgeBtn.remove();
+  const nextBtn = document.getElementById('addon-next-btn');
+  if (nextBtn) nextBtn.hidden = false;
+  startAddOnCountdown();
 }
 
 function enterRush(entryBonus = null) {
@@ -445,7 +456,6 @@ function setState(state) {
   clearCountdown();
   game.state = state;
   render();
-  if (needsCountdown(state)) startAddOnCountdown();
 }
 
 // ---- 差玉推移グラフ ----
